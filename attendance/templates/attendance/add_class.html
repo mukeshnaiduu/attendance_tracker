@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Add Class{% endblock %}
+
+{% block content %}
+    <style>
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            margin: 0 auto;
+            margin-top: 100px; /* Adjust as needed for spacing from topnav */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: block;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .checkbox-container {
+            margin-bottom: 15px;
+        }
+        .checkbox-container label {
+            margin-left: 5px;
+            font-weight: normal;
+            display: inline-block; /* Display the label and checkbox in a line */
+        }
+        .checkbox-container input[type="checkbox"] {
+            display: inline-block; /* Display checkboxes in a line with the labels */
+            margin-right: 5px; /* Add some spacing between checkbox and label */
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+
+    <div class="container">
+        <h1>Add New Class</h1>
+        {% if messages %}
+            <div class="error-message">
+                <ul>
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <form method="post" action="{% url 'add_class' %}">
+            {% csrf_token %}
+            <label for="name">Class Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="subjects">Subjects:</label>
+            <div id="subjects" class="checkbox-container">
+                {% for subject in subjects %}
+                    <div>
+                        <input type="checkbox" id="subject_{{ subject.id }}" name="subjects" value="{{ subject.id }}">
+                        <label for="subject_{{ subject.id }}">{{ subject.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit">Add Class</button>
+        </form>
+        
+    </div>
+{% endblock %}

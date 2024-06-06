@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Student List{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    table, th, td {
+        border: 1px solid #ccc;
+    }
+    th, td {
+        padding: 10px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .actions {
+        display: flex;
+        gap: 10px;
+    }
+    .actions a, .actions form {
+        display: inline-block;
+    }
+    .actions a, .actions button {
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .actions button {
+        background-color: #dc3545;
+    }
+    .class-select {
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .class-select select {
+        padding: 10px;
+        font-size: 16px;
+    }
+</style>
+
+<div class="container">
+    <h1>Student List</h1>
+    <div class="class-select">
+        <form method="get" action="{% url 'student_list' %}">
+            <label for="class_id">Select Class:</label>
+            <select id="class_id" name="class_id" onchange="this.form.submit()">
+                <option value="">-- Select a Class --</option>
+                {% for class in classes %}
+                    <option value="{{ class.id }}" {% if class.id|stringformat:"s" == selected_class_id %}selected{% endif %}>{{ class.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Roll Number</th>
+                <th>Full Name</th>
+                <th>Class</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if students %}
+                {% for student in students %}
+                    <tr>
+                        <td>{{ student.rollno }}</td>
+                        <td>{{ student.full_name }}</td>
+                        <td>{{ student.student_class.name }}</td>
+                        <td class="actions">
+                            <a href="{% url 'update_student'  %}?rollno={{ student.rollno }}">Update</a>
+                            <form method="post" action="{% url 'delete_student' student.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center;">No students found for the selected class.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

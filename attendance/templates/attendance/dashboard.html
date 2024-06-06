@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .class-select {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .class-select select {
+        padding: 10px;
+        font-size: 16px;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Attendance Dashboard</h1>
+
+      <div class="class-select">
+        <label for="class-select">Select Class:</label>
+        <select id="class-select" onchange="loadAttendanceData()">
+          <option value="">All Classes</option>
+          {% for class in classes %}
+          <option value="{{ class.id }}">{{ class.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <canvas id="averageAttendanceChart"></canvas>
+      </div>
+      <div>
+        <canvas id="groupedAttendanceChart"></canvas>
+      </div>
+    </div>
+
+    <script>
+      let averageAttendanceChart;
+      let groupedAttendanceChart;
+
+      function loadAttendanceData() {
+        const classId = document.getElementById("class-select").value;
+        fetch(`/get_attendance_data/?class_id=${classId}`)
+          .then((response) => response.json())
+          .then((data) => updateCharts(data));
+      }
+
+      function updateCharts(data) {
+        if (averageAttendanceChart) {
+          averageAttendanceChart.destroy();
+        }
+        if (groupedAttendanceChart) {
+          groupedAttendanceChart.destroy();
+        }
+
+        if (data.class_avg_attendance) {
+          // Create chart for class average attendance
+          const ctx = document
+            .getElementById("averageAttendanceChart")
+            .getContext("2d");
+          averageAttendanceChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: Object.keys(data.class_avg_attendance),
+              datasets: [
+                {
+                  label: "Average Attendance (%)",
+                  data: Object.values(data.class_avg_attendance),
+                  backgroundColor: "rgba(75, 192, 192, 0.2)",
+                  borderColor: "rgba(75, 192, 192, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true,
+                },
+              },
+            },
+          });
+        } else if (data.attendance_groups) {
+          
+          const ctx2 = document
+            .getElementById("groupedAttendanceChart")
+            .getContext("2d");
+          groupedAttendanceChart = new Chart(ctx2, {
+            type: "bar",
+            data: {
+              labels: ["Below 65%", "65%-75%", "Above 75%"],
+              datasets: [
+                {
+                  label: "Student Attendance Groups",
+                  data: [
+                    data.attendance_groups.below_65,
+                    data.attendance_groups.between_65_75,
+                    data.attendance_groups.above_75,
+                  ],
+                  backgroundColor: [
+                    "rgba(255, 99, 132, 0.2)",
+                    "rgba(255, 206, 86, 0.2)",
+                    "rgba(75, 192, 192, 0.2)",
+                  ],
+                  borderColor: [
+                    "rgba(255, 99, 132, 1)",
+                    "rgba(255, 206, 86, 1)",
+                    "rgba(75, 192, 192, 1)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      let label = context.label || "";
+                      if (label) {
+                        label += ": ";
+                      }
+                      label += context.raw;
+                      return label;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+      }
+
+      window.onload = loadAttendanceData;
+    </script>
+  </body>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}Modify Attendance{% endblock %}
+{% block content %}
+<style>
+  .container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  table, th, td {
+    border: 1px solid #ccc;
+  }
+  th, td {
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    background-color: #f2f2f2;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .form-group select, .form-group input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+  .form-group input[type="number"] {
+    width: auto;
+  }
+  .submit-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .submit-button:hover {
+    background-color: #45a049;
+  }
+  .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+</style>
+<div class="container">
+  <h1>Modify Attendance</h1>
+  {% if messages %}
+            <div class="error-message">
+                <ul>
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+  {% if not selected_class %}
+  <form method="get" action="{% url 'modify_attendance' %}">
+    <div class="form-group">
+      <label for="class_id">Select Class</label>
+      <select name="class_id" id="class_id">
+        {% for class in classes %}
+        <option value="{{ class.id }}">{{ class.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="submit-button">Submit</button>
+  </form>
+  {% else %}
+  <form method="post" action="{% url 'save_attendance' %}">
+    {% csrf_token %}
+    <input type="hidden" name="class_id" value="{{ selected_class.id }}" />
+    <table>
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>Student Name</th>
+          {% for subject in subjects %}
+          <th>{{ subject.name }}</th>
+          {% endfor %}
+          <th>Total Classes Attended</th>
+          <th>Total Classes Held</th>
+          <th>Percentage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="2">Total classes</td>
+          {% for subject_id, sessions_count in subject_sessions.items %}
+          <td>{{ sessions_count }}</td>
+          {% endfor %}
+          <td>{{ total_subject_sessions }}</td>
+          <td>{{ total_subject_sessions }}</td>
+          <td>100%</td>
+        </tr>
+        {% for student in attendance_data %}
+        <tr>
+          <td>{{ student.rollno }}</td>
+          <td>{{ student.fullname }}</td>
+          {% for subject_id, attendance_count in student.subject_attendance.items %}
+          <td>
+            <input
+              type="number"
+              name="attendance_{{ student.rollno }}_{{ subject_id }}"
+              value="{{ attendance_count }}"
+              min="0"
+              style="display: none"
+              class="attendance-input"
+            />
+            <div
+              class="attendance-display"
+              data-input-name="attendance_{{ student.rollno }}_{{ subject_id }}"
+              >{{ attendance_count }}</div>
+          </td>
+          {% endfor %}
+          <td>{{ student.total_classes_attended }}</td>
+          <td>{{ student.total_sessions }}</td>
+          <td>{{ student.percentage }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="submit-button">Save Changes</button>
+  </form>
+  {% endif %}
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const attendanceDisplays = document.querySelectorAll(".attendance-display");
+
+    attendanceDisplays.forEach(display => {
+      display.addEventListener("click", function () {
+        const inputName = display.dataset.inputName;
+        const input = document.querySelector(`input[name="${inputName}"]`);
+        input.style.display = 'inline';
+        display.style.display = 'none';
+        input.focus();
+        input.addEventListener("blur", function () {
+          display.textContent = input.value;
+          input.style.display = 'none';
+          display.style.display = 'inline';
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Take Attendance{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    form {
+        margin-bottom: 20px;
+    }
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+    select, button {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+        font-size: 16px;
+    }
+    button {
+        background-color: #28a745;
+        color: white;
+        cursor: pointer;
+        border: none;
+    }
+    button:hover {
+        background-color: #218838;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    table, th, td {
+        border: 1px solid #ccc;
+    }
+    th, td {
+        padding: 10px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+        background-color: #ccc;
+        border-radius: 20px;
+        padding: 2px;
+    }
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd1cd;
+        border-radius: 20px;
+        transition: .4s;
+    }
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transition: .4s;
+    }
+    input:checked + .toggle-slider {
+        background-color: #28a745;
+    }
+    input:checked + .toggle-slider:before {
+        transform: translateX(20px);
+    }
+</style>
+<div class="container">
+    <h1>Take Attendance</h1>
+    <form method="post" action="{% url 'take_attendance' %}">
+        {% csrf_token %}
+        <label for="class_id">Class:</label>
+        <select id="class_id" name="class_id" required>
+            <option value="">-- Select a Class --</option>
+            {% for class in classes %}
+                <option value="{{ class.id }}">{{ class.name }}</option>
+            {% endfor %}
+        </select>
+        <label for="subject_id">Subject:</label>
+        <select id="subject_id" name="subject_id" required>
+            <option value="">-- Select a Subject --</option>
+        </select>
+        <div id="students_list"></div>
+        <button type="submit">Submit Attendance</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const classSelect = document.getElementById('class_id');
+        const subjectSelect = document.getElementById('subject_id');
+        const studentsListDiv = document.getElementById('students_list');
+
+        classSelect.addEventListener('change', function() {
+            const classId = this.value;
+
+            // Clear existing options and students list
+            subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
+            studentsListDiv.innerHTML = '';
+
+            if (classId) {
+                // Fetch subjects for the selected class
+                fetch(`/get_subjects_by_class/${classId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.subjects.forEach(subject => {
+                            const option = document.createElement('option');
+                            option.value = subject.id;
+                            option.textContent = subject.name;
+                            subjectSelect.appendChild(option);
+                        });
+                    });
+
+                // Fetch students for the selected class
+                fetch(`/get_students_by_class/${classId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        studentsListDiv.innerHTML = `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Roll Number</th>
+                                        <th>Student Name</th>
+                                        <th>Present</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.students.map(student => `
+                                        <tr>
+                                            <td>${student.rollno}</td>
+                                            <td>${student.fullname}</td>
+                                            <td>
+                                                <label class="toggle-switch">
+                                                    <input type="checkbox" name="attendance_${student.id}">
+                                                    <span class="toggle-slider"></span>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %}

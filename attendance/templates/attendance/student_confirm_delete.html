@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Student{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .buttons {
+        text-align: center;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+
+<div class="container">
+    <h1>Delete Student</h1>
+    <p>Are you sure you want to delete the student "{{ student.full_name }}"?</p>
+    <div class="buttons">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger">Yes, delete</button>
+        </form>
+        <a href="{% url 'student_list' %}">
+            <button type="button" class="btn-secondary">Cancel</button>
+        </a>
+    </div>
+</div>
+{% endblock %}
