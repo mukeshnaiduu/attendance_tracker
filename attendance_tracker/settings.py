@@ -95,7 +95,8 @@ DATABASES = {
         'USER': 'postgres',  # This is fixed for Supabase
         'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD', ''),
         'HOST': os.getenv('SUPABASE_DB_HOST', ''),
-        'PORT': '5432',  # Default PostgreSQL port
+        # 'PORT': '5432',  # Default PostgreSQL port
+        'PORT': '6543',  # Default PostgreSQL port
         'OPTIONS': {
             'sslmode': 'require'
     }
