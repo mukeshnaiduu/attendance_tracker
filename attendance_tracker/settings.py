@@ -91,16 +91,15 @@ WSGI_APPLICATION = 'attendance_tracker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',  # This is fixed for Supabase
-        'USER': 'postgres',  # This is fixed for Supabase
+        'NAME': 'postgres',
+        'USER': os.getenv('SUPABASE_DB_USER',''),  # Use the specific user
         'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD', ''),
         'HOST': os.getenv('SUPABASE_DB_HOST', ''),
-        # 'PORT': '5432',  # Default PostgreSQL port
-        'PORT': '6543',  # Default PostgreSQL port
+        'PORT': os.getenv('SUPABASE_DB_PORT', '5432'),  # Default PostgreSQL port
         'OPTIONS': {
             'sslmode': 'require'
+        }
     }
-}
 }
 
 
