@@ -6,6 +6,7 @@ from . import views
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
+    path('dashboard', views.dashboard, name='dashboard'),
     path('export-report/', views.export_report, name='export_report'),
     
     # Class URLs

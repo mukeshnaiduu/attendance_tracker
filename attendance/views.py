@@ -973,21 +973,23 @@ def export_attendance_report(request, class_id):
 
 
 
-@login_required(login_url='/login/')
 def dashboard(request):
-    if not request.user.is_authenticated:
-        return redirect('register')
+    # if not request.user.is_authenticated:
+    #     return redirect('register')
         
     today = timezone.now().date()
     thirty_days_ago = today - timedelta(days=30)
 
-    # Basic statistics
     context = {
         'total_students': Student.objects.count(),
         'total_classes': Class.objects.count(),
         'total_subjects': Subject.objects.count(),
-        'user_role': request.user.profile.role
+        'user_role': None  # Default to None
     }
+
+    if request.user.is_authenticated:
+        context['user_role'] = request.user.profile.role
+
 
     # Today's attendance statistics
     today_attendance = Attendance.objects.filter(date=today)
