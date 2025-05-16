@@ -11,9 +11,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-
 import os
-import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "your_project.settings")
@@ -86,16 +88,16 @@ WSGI_APPLICATION = 'attendance_tracker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'attendance_db',
-        'USER': 'a10user',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': 'postgres',  # This is fixed for Supabase
+        'USER': 'postgres',  # This is fixed for Supabase
+        'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD', ''),
+        'HOST': os.getenv('SUPABASE_DB_HOST', ''),
+        'PORT': '5432',  # Default PostgreSQL port
+        'OPTIONS': {
+            'sslmode': 'require'
     }
 }
-
-
-
+}
 
 
 # Password validation
@@ -104,9 +106,15 @@ DATABASES = {
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'OPTIONS': {
+            'max_similarity': 0.7,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -114,7 +122,24 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+    {
+        'NAME': 'attendance.validators.SpecialCharacterValidator',
+        'OPTIONS': {
+            'special_chars': '@$#',
+        }
+    },
 ]
+
+# Custom password validation settings
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+]
+
+# Password reset timeout in seconds (3 days)
+PASSWORD_RESET_TIMEOUT = 259200
 
 
 # Internationalization

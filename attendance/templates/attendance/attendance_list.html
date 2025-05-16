@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Attendance Records</h2>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="class_id" class="form-label">Class:</label>
+                            <select name="class_id" id="class_id" class="form-select">
+                                <option value="">All Classes</option>
+                                {% for class in classes %}
+                                    <option value="{{ class.id }}" {% if class.id|stringformat:"s" == request.GET.class_id %}selected{% endif %}>
+                                        {{ class.display_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="subject_id" class="form-label">Subject:</label>
+                            <select name="subject_id" id="subject_id" class="form-select">
+                                <option value="">All Subjects</option>
+                                {% for subject in subjects %}
+                                    <option value="{{ subject.id }}" {% if subject.id|stringformat:"s" == request.GET.subject_id %}selected{% endif %}>
+                                        {{ subject.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">From Date:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ request.GET.start_date }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">To Date:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ request.GET.end_date }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Apply Filters
+                            </button>
+                            <a href="{% url 'attendance_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-undo me-2"></i>Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-transparent">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Attendance Records</h5>
+                <a href="{% url 'take_attendance' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-2"></i>Take Attendance
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if attendance_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Class</th>
+                                <th>Subject</th>
+                                <th class="text-center">Status</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in attendance_records %}
+                                <tr>
+                                    <td>{{ record.date }}</td>
+                                    <td>{{ record.student.name }} ({{ record.student.roll_no }})</td>
+                                    <td>{{ record.student.class_name.display_name }}</td>
+                                    <td>{{ record.subject.name }}</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if record.status %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if record.status %}Present{% else %}Absent{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.remarks|default:"-" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'edit_attendance' record.id %}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="confirmDelete('{% url 'delete_attendance' record.id %}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if attendance_records.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if attendance_records.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ attendance_records.previous_page_number }}{% if request.GET.class_id %}&class_id={{ request.GET.class_id }}{% endif %}{% if request.GET.subject_id %}&subject_id={{ request.GET.subject_id }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for i in attendance_records.paginator.page_range %}
+                                {% if attendance_records.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}{% if request.GET.class_id %}&class_id={{ request.GET.class_id }}{% endif %}{% if request.GET.subject_id %}&subject_id={{ request.GET.subject_id }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if attendance_records.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ attendance_records.next_page_number }}{% if request.GET.class_id %}&class_id={{ request.GET.class_id }}{% endif %}{% if request.GET.subject_id %}&subject_id={{ request.GET.subject_id }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    No attendance records found for the selected criteria.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this attendance record?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="deleteLink" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Set max date as today for both inputs
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.max = today;
+    endDateInput.max = today;
+    
+    // When start date changes, update end date min value
+    startDateInput.addEventListener('change', function() {
+        endDateInput.min = this.value;
+        if (endDateInput.value && endDateInput.value < this.value) {
+            endDateInput.value = this.value;
+        }
+    });
+    
+    // When end date changes, update start date max value
+    endDateInput.addEventListener('change', function() {
+        if (startDateInput.value && startDateInput.value > this.value) {
+            startDateInput.value = this.value;
+        }
+    });
+
+    // Initialize class-subject dependency
+    const classSelect = document.getElementById('class_id');
+    const subjectSelect = document.getElementById('subject_id');
+    
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        if (classId) {
+            fetch(`/get_subjects_by_class/${classId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    subjectSelect.innerHTML = '<option value="">All Subjects</option>';
+                    data.subjects.forEach(subject => {
+                        subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                    subjectSelect.disabled = false;
+                });
+        } else {
+            subjectSelect.innerHTML = '<option value="">All Subjects</option>';
+            subjectSelect.disabled = true;
+        }
+    });
+});
+
+function confirmDelete(deleteUrl) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('deleteLink').href = deleteUrl;
+    modal.show();
+}
+</script>
+{% endblock %} 

@@ -3,96 +3,142 @@
 {% block title %}Class List{% endblock %}
 
 {% block content %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-    }
-    .container {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-    }
-    table, th, td {
-        border: 1px solid #ccc;
-    }
-    th, td {
-        padding: 10px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .actions {
-        display: flex;
-        gap: 10px;
-    }
-    .actions a, .actions form {
-        display: inline-block;
-    }
-    .actions a, .actions button {
-        padding: 5px 10px;
-        background-color: #007bff;
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        text-decoration: none;
-        cursor: pointer;
-    }
-    .actions button {
-        background-color: #dc3545;
-    }
-</style>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Class List</h2>
+                {% if user.profile.role == 'hod' %}
+                <a href="{% url 'add_class' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add New Class
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-<div class="container">
-    <h1>Class List</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Class Name</th>
-                <th>Subjects</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if classes %}
-                {% for class in classes %}
-                    <tr>
-                        <td>{{ class.name }}</td>
-                        <td>
-                            {% for subject in class.subjects.all %}
-                                {{ subject.name }}{% if not forloop.last %}, {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td class="actions">
-                            <a href="{% url 'class_edit' class.id %}">Edit</a>
-                            <form method="post" action="{% url 'delete_class' class.id %}">
-                                {% csrf_token %}
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="3" style="text-align: center;">No classes found.</td>
-                </tr>
+    {% if classes %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Section</th>
+                            <th>Subjects</th>
+                            <th>Total Students</th>
+                            {% if user.profile.role == 'hod' %}
+                            <th class="text-end">Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for class in classes %}
+                        <tr>
+                            <td>{{ class.name }}</td>
+                            <td>{{ class.section }}</td>
+                            <td>
+                                {% for subject in class.subjects.all %}
+                                <span class="badge bg-secondary me-1">{{ subject.name }}</span>
+                                {% empty %}
+                                <span class="text-muted">No subjects assigned</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {{ class.students.count }}
+                            </td>
+                            {% if user.profile.role == 'hod' %}
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'edit_class' class.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ class.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal{{ class.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ class.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteModalLabel{{ class.id }}">Confirm Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                Are you sure you want to delete the class "{{ class.name }} {{ class.section }}"? This action cannot be undone.
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <a href="{% url 'delete_class' class.id %}" class="btn btn-danger">Delete</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if classes.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if classes.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ classes.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            <i class="fas fa-chevron-left"></i>
+                        </span>
+                    </li>
+                    {% endif %}
+
+                    {% for i in classes.paginator.page_range %}
+                    {% if classes.number == i %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if classes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ classes.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
             {% endif %}
-        </tbody>
-    </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No classes found.
+        {% if user.profile.role == 'hod' %}
+        <a href="{% url 'add_class' %}" class="alert-link">Add your first class</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

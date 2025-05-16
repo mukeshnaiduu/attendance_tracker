@@ -1,28 +1,34 @@
 from django.contrib import admin
-from .models import Attendance, Class, Student, Subject
+from .models import Profile, Subject, Class, Student, Attendance
 
-class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('roll_no', 'student_name', 'total_classes_attended', 'total_sessions', 'attendance_percentage')
-    search_fields = ('student_name', 'roll_no')
-    list_filter = ('student_name',)
-    
-    def attendance_percentage(self, obj):
-        return f"{obj.attendance_percentage:.2f}%"
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('fullname', 'role', 'user')
+    list_filter = ('role',)
+    search_fields = ('fullname', 'user__username')
 
-class ClassAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
-
-class StudentAdmin(admin.ModelAdmin):
-    list_display = ('rollno', 'full_name', 'student_class')
-    search_fields = ('full_name', 'rollno')
-    list_filter = ('student_class',)
-
+@admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
+    list_display = ('name', 'code', 'teacher', 'default_classes_per_session')
+    list_filter = ('teacher',)
+    search_fields = ('name', 'code')
 
-admin.site.register(Attendance, AttendanceAdmin)
-admin.site.register(Class, ClassAdmin)
-admin.site.register(Student, StudentAdmin)
-admin.site.register(Subject, SubjectAdmin)
+@admin.register(Class)
+class ClassAdmin(admin.ModelAdmin):
+    list_display = ('name', 'section')
+    list_filter = ('subjects',)
+    search_fields = ('name', 'section')
+    filter_horizontal = ('subjects',)
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'roll_no', 'class_name', 'gender')
+    list_filter = ('class_name', 'gender')
+    search_fields = ('name', 'roll_no')
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ('student', 'subject', 'date', 'status', 'created_by')
+    list_filter = ('status', 'date', 'subject', 'student__class_name')
+    search_fields = ('student__name', 'subject__name')
+    date_hierarchy = 'date'

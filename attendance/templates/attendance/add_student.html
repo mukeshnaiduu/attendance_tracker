@@ -1,68 +1,50 @@
 {% extends "base.html" %}
+{% load form_filters %}
 
-{% block title %}Add Student{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <style>
-        .container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            margin: 0 auto;
-            margin-top: 100px; /* Adjust as needed for spacing from topnav */
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 10px; /* Improved spacing */
-            font-weight: bold;
-        }
-        input, select, button {
-            width: calc(100% - 20px); /* Adjusted width calculation */
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            display: block;
-            font-size: 16px;
-        }
-        button {
-            background-color: #007bff;
-            color: #ffffff;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">{{ title }}</h2>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
 
-    <div class="container">
-        <h1>Add New Student</h1>
-        {% if error_message %}
-            <p style="color: red;">{{ error_message }}</p>
-        {% endif %}
-        <form method="post" action="{% url 'add_student' %}">
-            {% csrf_token %}
-            <label for="full_name">Full Name:</label> <!-- Updated input name -->
-            <input type="text" id="full_name" name="full_name" required> <!-- Updated input name -->
-
-            <label for="rollno">Roll Number:</label>
-            <input type="text" id="rollno" name="rollno" required>
-
-            <label for="student_class">Class:</label>
-            <select id="student_class" name="student_class" required>
-                {% for class in classes %}
-                    <option value="{{ class.id }}">{{ class.name }}</option>
-                {% endfor %}
-            </select>
-
-            <button type="submit">Add Student</button>
-        </form>
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field|add_class:"form-control" }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    {% for error in field.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Student</button>
+                            <a href="{% url 'student_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock %}

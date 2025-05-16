@@ -16,4 +16,11 @@ def get_item(dictionary, key):
     Returns:
         The value corresponding to the key in the dictionary, or None if the key is not found.
     """
-    return dictionary.get(key)
+    return dictionary.get(str(key))
+
+@register.filter
+def pop(dictionary, key):
+    """Return a new dictionary with the given key removed."""
+    result = dictionary.copy()
+    result.pop(key, None)
+    return result

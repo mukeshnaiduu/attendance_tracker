@@ -65,7 +65,7 @@
             <select id="student_class" name="student_class" required>
                 {% for class in classes %}
                     <option value="{{ class.id }}" {% if class.id == student.student_class.id %}selected{% endif %}>
-                        {{ class.name }}
+                        {{ class.display_name }}
                     </option>
                 {% endfor %}
             </select>

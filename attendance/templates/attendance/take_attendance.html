@@ -1,188 +1,221 @@
 {% extends 'base.html' %}
+
 {% block title %}Take Attendance{% endblock %}
 
 {% block content %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 20px;
-    }
-    .container {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    form {
-        margin-bottom: 20px;
-    }
-    label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-    }
-    select, button {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        background-color: #f9f9f9;
-        font-size: 16px;
-    }
-    button {
-        background-color: #28a745;
-        color: white;
-        cursor: pointer;
-        border: none;
-    }
-    button:hover {
-        background-color: #218838;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-    }
-    table, th, td {
-        border: 1px solid #ccc;
-    }
-    th, td {
-        padding: 10px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 20px;
-        background-color: #ccc;
-        border-radius: 20px;
-        padding: 2px;
-    }
-    .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    .toggle-slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #cbd1cd;
-        border-radius: 20px;
-        transition: .4s;
-    }
-    .toggle-slider:before {
-        position: absolute;
-        content: "";
-        height: 16px;
-        width: 16px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        border-radius: 50%;
-        transition: .4s;
-    }
-    input:checked + .toggle-slider {
-        background-color: #28a745;
-    }
-    input:checked + .toggle-slider:before {
-        transform: translateX(20px);
-    }
-</style>
-<div class="container">
-    <h1>Take Attendance</h1>
-    <form method="post" action="{% url 'take_attendance' %}">
-        {% csrf_token %}
-        <label for="class_id">Class:</label>
-        <select id="class_id" name="class_id" required>
-            <option value="">-- Select a Class --</option>
-            {% for class in classes %}
-                <option value="{{ class.id }}">{{ class.name }}</option>
-            {% endfor %}
-        </select>
-        <label for="subject_id">Subject:</label>
-        <select id="subject_id" name="subject_id" required>
-            <option value="">-- Select a Subject --</option>
-        </select>
-        <div id="students_list"></div>
-        <button type="submit">Submit Attendance</button>
-    </form>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Take Attendance</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form id="classSubjectForm" method="post" onsubmit="return validateForm()">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="class_id" class="form-label">Select Class:</label>
+                            <select class="form-select" id="class_id" name="class_id" required>
+                                <option value="">Select a class</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject_id" class="form-label">Select Subject:</label>
+                            <select class="form-select" id="subject_id" name="subject_id" required disabled>
+                                <option value="">First select a class</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date:</label>
+                            <input type="date" class="form-select" id="date" name="date" required max="{{ today|date:'Y-m-d' }}">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div id="studentList" style="display: none;">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-transparent">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Mark Attendance</h5>
+                            <div>
+                                <button type="button" class="btn btn-outline-success btn-sm me-2" onclick="markAllPresent()">
+                                    <i class="fas fa-check-circle me-1"></i>Mark All Present
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="markAllAbsent()">
+                                    <i class="fas fa-times-circle me-1"></i>Mark All Absent
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="attendanceForm" method="post" onsubmit="return validateForm()">
+                            {% csrf_token %}
+                            <input type="hidden" name="class_id" id="form_class_id">
+                            <input type="hidden" name="subject_id" id="form_subject_id">
+                            <input type="hidden" name="date" id="form_date">
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Roll No</th>
+                                            <th>Name</th>
+                                            <th class="text-center">Status</th>
+                                            <th>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="text-end mt-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Attendance
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const classSelect = document.getElementById('class_id');
-        const subjectSelect = document.getElementById('subject_id');
-        const studentsListDiv = document.getElementById('students_list');
+document.addEventListener('DOMContentLoaded', function() {
+    const classSelect = document.getElementById('class_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const dateInput = document.getElementById('date');
+    const studentList = document.getElementById('studentList');
+    const studentTableBody = document.getElementById('studentTableBody');
+    const formClassId = document.getElementById('form_class_id');
+    const formSubjectId = document.getElementById('form_subject_id');
+    const formDate = document.getElementById('form_date');
 
-        classSelect.addEventListener('change', function() {
-            const classId = this.value;
+    // Set default date to today and max date to today
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+    dateInput.max = today;
 
-            // Clear existing options and students list
-            subjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>';
-            studentsListDiv.innerHTML = '';
+    // Prevent manual date input
+    dateInput.addEventListener('keydown', function(e) {
+        e.preventDefault();
+        return false;
+    });
 
-            if (classId) {
-                // Fetch subjects for the selected class
-                fetch(`/get_subjects_by_class/${classId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.subjects.forEach(subject => {
-                            const option = document.createElement('option');
-                            option.value = subject.id;
-                            option.textContent = subject.name;
-                            subjectSelect.appendChild(option);
-                        });
+    // Validate date on change
+    dateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate > currentDate) {
+            alert('Cannot select future dates');
+            this.value = today;
+        }
+    });
+
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        subjectSelect.disabled = !classId;
+        
+        if (classId) {
+            // Fetch subjects for selected class
+            fetch(`/get_subjects_by_class/${classId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    subjectSelect.innerHTML = '<option value="">Select a subject</option>';
+                    data.subjects.forEach(subject => {
+                        subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
                     });
+                });
+        } else {
+            subjectSelect.innerHTML = '<option value="">First select a class</option>';
+            studentList.style.display = 'none';
+        }
+    });
 
-                // Fetch students for the selected class
-                fetch(`/get_students_by_class/${classId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        studentsListDiv.innerHTML = `
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Roll Number</th>
-                                        <th>Student Name</th>
-                                        <th>Present</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.students.map(student => `
-                                        <tr>
-                                            <td>${student.rollno}</td>
-                                            <td>${student.fullname}</td>
-                                            <td>
-                                                <label class="toggle-switch">
-                                                    <input type="checkbox" name="attendance_${student.id}">
-                                                    <span class="toggle-slider"></span>
-                                                </label>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+    subjectSelect.addEventListener('change', function() {
+        const classId = classSelect.value;
+        const subjectId = this.value;
+        
+        if (classId && subjectId) {
+            formClassId.value = classId;
+            formSubjectId.value = subjectId;
+            formDate.value = dateInput.value;
+            
+            // Fetch students for selected class
+            fetch(`/get_students_by_class/${classId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    studentTableBody.innerHTML = '';
+                    data.students.forEach(student => {
+                        studentTableBody.innerHTML += `
+                            <tr>
+                                <td>${student.rollno}</td>
+                                <td>${student.fullname}</td>
+                                <td class="text-center">
+                                    <div class="form-check form-check-inline justify-content-center">
+                                        <input class="form-check-input attendance-checkbox" type="checkbox" 
+                                               name="status_${student.id}" id="status_${student.id}" 
+                                               value="present" checked>
+                                        <input type="hidden" name="students[]" value="${student.id}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm"
+                                           name="remarks[]" placeholder="Optional remarks">
+                                </td>
+                            </tr>
                         `;
                     });
-            }
-        });
+                    studentList.style.display = 'block';
+                });
+        } else {
+            studentList.style.display = 'none';
+        }
     });
+
+    dateInput.addEventListener('change', function() {
+        formDate.value = this.value;
+    });
+});
+
+function validateForm() {
+    const dateInput = document.getElementById('date');
+    const selectedDate = new Date(dateInput.value);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate > currentDate) {
+        alert('Cannot mark attendance for future dates');
+        return false;
+    }
+    return true;
+}
+
+function markAllPresent() {
+    document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function markAllAbsent() {
+    document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
 </script>
 {% endblock %}

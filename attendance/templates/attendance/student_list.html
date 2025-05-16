@@ -1,115 +1,115 @@
 {% extends 'base.html' %}
 
-{% block title %}Student List{% endblock %}
+{% block title %}Students{% endblock %}
 
 {% block content %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-    }
-    .container {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-    }
-    table, th, td {
-        border: 1px solid #ccc;
-    }
-    th, td {
-        padding: 10px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .actions {
-        display: flex;
-        gap: 10px;
-    }
-    .actions a, .actions form {
-        display: inline-block;
-    }
-    .actions a, .actions button {
-        padding: 5px 10px;
-        background-color: #007bff;
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        text-decoration: none;
-        cursor: pointer;
-    }
-    .actions button {
-        background-color: #dc3545;
-    }
-    .class-select {
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    .class-select select {
-        padding: 10px;
-        font-size: 16px;
-    }
-</style>
-
-<div class="container">
-    <h1>Student List</h1>
-    <div class="class-select">
-        <form method="get" action="{% url 'student_list' %}">
-            <label for="class_id">Select Class:</label>
-            <select id="class_id" name="class_id" onchange="this.form.submit()">
-                <option value="">-- Select a Class --</option>
-                {% for class in classes %}
-                    <option value="{{ class.id }}" {% if class.id|stringformat:"s" == selected_class_id %}selected{% endif %}>{{ class.name }}</option>
-                {% endfor %}
-            </select>
-        </form>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Students</h2>
+        </div>
+        {% if user.profile.role == 'hod' %}
+        <div class="col text-end">
+            <a href="{% url 'add_student' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Student
+            </a>
+        </div>
+        {% endif %}
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Roll Number</th>
-                <th>Full Name</th>
-                <th>Class</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if students %}
-                {% for student in students %}
-                    <tr>
-                        <td>{{ student.rollno }}</td>
-                        <td>{{ student.full_name }}</td>
-                        <td>{{ student.student_class.name }}</td>
-                        <td class="actions">
-                            <a href="{% url 'update_student'  %}?rollno={{ student.rollno }}">Update</a>
-                            <form method="post" action="{% url 'delete_student' student.id %}">
-                                {% csrf_token %}
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="4" style="text-align: center;">No students found for the selected class.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form method="get" class="form-inline">
+                <div class="form-group">
+                    <label for="class_filter" class="form-label">Filter by Class:</label>
+                    <select name="class_id" id="class_filter" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Classes</option>
+                        {% for class_obj in classes %}
+                        <option value="{{ class_obj.id }}" {% if selected_class_id == class_obj.id|stringformat:"i" %}selected{% endif %}>
+                            {{ class_obj.display_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Attendance %</th>
+                            {% if user.profile.role == 'hod' %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.roll_no }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.class_name }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if student.get_attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                                        role="progressbar" style="width: {{ student.get_attendance_percentage }}%"
+                                        aria-valuenow="{{ student.get_attendance_percentage }}" aria-valuemin="0"
+                                        aria-valuemax="100">
+                                        {{ student.get_attendance_percentage }}%
+                                    </div>
+                                </div>
+                            </td>
+                            {% if user.profile.role == 'hod' %}
+                            <td>
+                                <a href="{% url 'update_student' student.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ student.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteModal{{ student.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ student.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel{{ student.id }}">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-start">
+                                        Are you sure you want to delete the student "{{ student.name }}" ({{ student.roll_no }})? This action cannot be undone.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <a href="{% url 'delete_student' student.id %}" class="btn btn-danger">Delete</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                {% if selected_class_id %}
+                                    No students found in this class.
+                                {% else %}
+                                    No students found.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

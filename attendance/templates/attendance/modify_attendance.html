@@ -1,171 +1,200 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
-{% block title %}Modify Attendance{% endblock %}
-{% block content %}
-<style>
-  .container {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-  h1 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
-  table, th, td {
-    border: 1px solid #ccc;
-  }
-  th, td {
-    padding: 10px;
-    text-align: left;
-  }
-  th {
-    background-color: #f2f2f2;
-  }
-  .form-group {
-    margin-bottom: 20px;
-  }
-  .form-group label {
-    display: block;
-    margin-bottom: 5px;
-  }
-  .form-group select, .form-group input {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    box-sizing: border-box;
-  }
-  .form-group input[type="number"] {
-    width: auto;
-  }
-  .submit-button {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    text-align: center;
-  }
-  .submit-button:hover {
-    background-color: #45a049;
-  }
-  .error-message {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
-        }
-</style>
-<div class="container">
-  <h1>Modify Attendance</h1>
-  {% if messages %}
-            <div class="error-message">
-                <ul>
-                    {% for message in messages %}
-                        <p>{{ message }}</p>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-  {% if not selected_class %}
-  <form method="get" action="{% url 'modify_attendance' %}">
-    <div class="form-group">
-      <label for="class_id">Select Class</label>
-      <select name="class_id" id="class_id">
-        {% for class in classes %}
-        <option value="{{ class.id }}">{{ class.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="submit-button">Submit</button>
-  </form>
-  {% else %}
-  <form method="post" action="{% url 'save_attendance' %}">
-    {% csrf_token %}
-    <input type="hidden" name="class_id" value="{{ selected_class.id }}" />
-    <table>
-      <thead>
-        <tr>
-          <th>Roll No</th>
-          <th>Student Name</th>
-          {% for subject in subjects %}
-          <th>{{ subject.name }}</th>
-          {% endfor %}
-          <th>Total Classes Attended</th>
-          <th>Total Classes Held</th>
-          <th>Percentage</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="2">Total classes</td>
-          {% for subject_id, sessions_count in subject_sessions.items %}
-          <td>{{ sessions_count }}</td>
-          {% endfor %}
-          <td>{{ total_subject_sessions }}</td>
-          <td>{{ total_subject_sessions }}</td>
-          <td>100%</td>
-        </tr>
-        {% for student in attendance_data %}
-        <tr>
-          <td>{{ student.rollno }}</td>
-          <td>{{ student.fullname }}</td>
-          {% for subject_id, attendance_count in student.subject_attendance.items %}
-          <td>
-            <input
-              type="number"
-              name="attendance_{{ student.rollno }}_{{ subject_id }}"
-              value="{{ attendance_count }}"
-              min="0"
-              style="display: none"
-              class="attendance-input"
-            />
-            <div
-              class="attendance-display"
-              data-input-name="attendance_{{ student.rollno }}_{{ subject_id }}"
-              >{{ attendance_count }}</div>
-          </td>
-          {% endfor %}
-          <td>{{ student.total_classes_attended }}</td>
-          <td>{{ student.total_sessions }}</td>
-          <td>{{ student.percentage }}%</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <button type="submit" class="submit-button">Save Changes</button>
-  </form>
-  {% endif %}
-</div>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const attendanceDisplays = document.querySelectorAll(".attendance-display");
 
-    attendanceDisplays.forEach(display => {
-      display.addEventListener("click", function () {
-        const inputName = display.dataset.inputName;
-        const input = document.querySelector(`input[name="${inputName}"]`);
-        input.style.display = 'inline';
-        display.style.display = 'none';
-        input.focus();
-        input.addEventListener("blur", function () {
-          display.textContent = input.value;
-          input.style.display = 'none';
-          display.style.display = 'inline';
-        });
-      });
+{% block title %}Modify Attendance{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Modify Attendance</h2>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Select Class, Subject and Date</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" id="filterForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="class_id" class="form-label">Class</label>
+                            <select name="class_id" id="class_id" class="form-select" required>
+                                <option value="">Select a class</option>
+                                {% for class in classes %}
+                                    <option value="{{ class.id }}" {% if class.id|stringformat:"s" == request.GET.class_id %}selected{% endif %}>
+                                        {{ class.display_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="subject_id" class="form-label">Subject</label>
+                            <select name="subject_id" id="subject_id" class="form-select" required {% if not request.GET.class_id %}disabled{% endif %}>
+                                <option value="">Select a subject</option>
+                                {% if subjects %}
+                                    {% for subject in subjects %}
+                                        <option value="{{ subject.id }}" {% if subject.id|stringformat:"s" == request.GET.subject_id %}selected{% endif %}>
+                                            {{ subject.name }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ request.GET.date }}" 
+                                   max="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Find Records
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if attendance_records %}
+    <!-- Attendance Records -->
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            Attendance Records for {{ selected_class.display_name }} - {{ selected_subject.name }} - {{ selected_date|date:"F d, Y" }}
+                        </h5>
+                        <div>
+                            <button type="submit" form="attendanceForm" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="attendanceForm" method="post" action="{% url 'save_attendance' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+                        <input type="hidden" name="subject_id" value="{{ selected_subject.id }}">
+                        <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 80px;">Roll No</th>
+                                        <th>Student Name</th>
+                                        <th class="text-center" style="width: 150px;">Status</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in attendance_records %}
+                                    <tr>
+                                        <td>{{ record.student.roll_no }}</td>
+                                        <td>{{ record.student.name }}</td>
+                                        <td class="text-center">
+                                            <select name="status_{{ record.id }}" class="form-select form-select-sm attendance-select">
+                                                <option value="1" {% if record.status %}selected{% endif %}>Present</option>
+                                                <option value="0" {% if not record.status %}selected{% endif %}>Absent</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm" 
+                                                   name="remarks_{{ record.id }}" 
+                                                   value="{{ record.remarks|default:'' }}"
+                                                   placeholder="Add remarks...">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif request.GET.class_id and request.GET.subject_id and request.GET.date %}
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No attendance records found for the selected class, subject and date.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set max date as today
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.max = today;
+
+    // Handle class-subject dependency
+    const classSelect = document.getElementById('class_id');
+    const subjectSelect = document.getElementById('subject_id');
+
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        subjectSelect.disabled = !classId;
+        
+        if (classId) {
+            fetch(`/get_subjects_by_class/${classId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    subjectSelect.innerHTML = '<option value="">Select a subject</option>';
+                    data.subjects.forEach(subject => {
+                        subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        } else {
+            subjectSelect.innerHTML = '<option value="">Select a subject</option>';
+        }
     });
-  });
+
+    // Highlight changed records
+    const attendanceSelects = document.querySelectorAll('.attendance-select');
+    attendanceSelects.forEach(select => {
+        const originalValue = select.value;
+        select.addEventListener('change', function() {
+            if (this.value !== originalValue) {
+                this.classList.add('bg-light');
+            } else {
+                this.classList.remove('bg-light');
+            }
+        });
+    });
+});
 </script>
+
+<style>
+.table th {
+    font-weight: 600;
+}
+.attendance-select {
+    width: 100px;
+    margin: 0 auto;
+}
+.form-select-sm {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
 {% endblock %}

@@ -1,162 +1,546 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load json_tags %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        max-width: 1000px;
-        margin: 0 auto;
-      }
-      h1 {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .class-select {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .class-select select {
-        padding: 10px;
-        font-size: 16px;
-      }
-    </style>
+<!-- Load Chart.js first -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Attendance Dashboard</h1>
 
-      <div class="class-select">
-        <label for="class-select">Select Class:</label>
-        <select id="class-select" onchange="loadAttendanceData()">
-          <option value="">All Classes</option>
-          {% for class in classes %}
-          <option value="{{ class.id }}">{{ class.name }}</option>
-          {% endfor %}
-        </select>
+<!-- Store data in script tags with explicit type -->
+<script id="weekly-labels" type="application/json">{{ weekly_labels|safe }}</script>
+<script id="weekly-data" type="application/json">{{ weekly_data|safe }}</script>
+<script id="class-stats" type="application/json">{{ class_stats|safe }}</script>
+
+<div class="container-fluid py-4">
+    <!-- Overview Statistics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Today's Attendance</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_attendance_percentage }}%</div>
+                            <div class="text-xs text-muted mt-1">
+                                {{ today_present_count }}/{{ today_total_count }} Present
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-primary opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Monthly Average</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ overall_attendance_percentage }}%</div>
+                            <div class="text-xs text-muted mt-1">
+                                Last 30 Days: {{ monthly_present_count }}/{{ monthly_total_count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-success opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card border-left-info shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Students</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                            <div class="text-xs text-muted mt-1">
+                                Across {{ total_classes }} Classes
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-info opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Subjects</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_subjects }}</div>
+                            <div class="text-xs text-muted mt-1">
+                                Active Courses
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body py-4">
+                    <div class="row justify-content-center">
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                            <a href="{% url 'take_attendance' %}" class="btn btn-primary btn-icon-split btn-lg w-100">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-plus-circle"></i>
+                                </span>
+                                <span class="text">Take Attendance</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                            <a href="{% url 'attendance_report' %}" class="btn btn-info btn-icon-split btn-lg w-100">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-chart-bar"></i>
+                                </span>
+                                <span class="text">View Reports</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                            <a href="{% url 'attendance_list' %}" class="btn btn-secondary btn-icon-split btn-lg w-100">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-list"></i>
+                                </span>
+                                <span class="text">View Records</span>
+                            </a>
+                        </div>
+                        {% if user_role == 'hod' %}
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                            <a href="{% url 'modify_attendance' %}" class="btn btn-warning btn-icon-split btn-lg w-100">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span class="text">Modify Records</span>
+                            </a>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                            <a href="{% url 'add_student' %}" class="btn btn-success btn-icon-split btn-lg w-100">
+                                <span class="icon text-white-50">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span class="text">Add Student</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
       </div>
 
+    <div class="row">
+        <!-- Weekly Attendance Trend -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Weekly Attendance Trend</h6>
+                    <div class="dropdown no-arrow">
+                        <button class="btn btn-link btn-sm" type="button" id="weeklyChartOptions" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="weeklyChartOptions">
+                            <button class="dropdown-item" onclick="toggleChartType()">Toggle Chart Type</button>
+                            <button class="dropdown-item" onclick="downloadChart()">Download Chart</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="weeklyChart" style="min-height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+                    <span class="badge bg-primary rounded-pill">Last 5 Records</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for item in recent_attendance|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
       <div>
-        <canvas id="averageAttendanceChart"></canvas>
+                                    <h6 class="mb-1">{{ item.record.student.name }}</h6>
+                                    <small class="text-muted">
+                                        {{ item.record.subject.name }} | 
+                                        {{ item.record.date|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{{ item.record.status|yesno:'success,danger' }} rounded-pill">
+                                        {{ item.record.status|yesno:'Present,Absent' }}
+                                    </span>
+                                    <div class="small text-muted mt-1">
+                                        {{ item.attendance_percentage }}% Overall
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox fa-2x mb-3 d-block"></i>
+                            No recent activity
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
       </div>
-      <div>
-        <canvas id="groupedAttendanceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Class-wise Statistics -->
+    <div class="row">
+        {% for class in classes %}
+        <div class="col-xl-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ class.name }} - {{ class.section }}</h6>
+                    <div class="btn-group" role="group" aria-label="Toggle Views">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" onclick="toggleView('{{ class.id }}', 'distribution')">
+                            <i class="fas fa-chart-pie me-1"></i> Distribution
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleView('{{ class.id }}', 'subjects')">
+                            <i class="fas fa-chart-bar me-1"></i> Subjects
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div id="distribution-{{ class.id }}" class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                                <canvas id="distributionChart{{ class.id }}" style="width: 100%; height: 100%;"></canvas>
+                            </div>
+                            <div id="subjects-{{ class.id }}" class="chart-container" style="display: none; position: relative; height: 300px; width: 100%;">
+                                <canvas id="subjectsChart{{ class.id }}" style="width: 100%; height: 100%;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
       </div>
     </div>
 
     <script>
-      let averageAttendanceChart;
-      let groupedAttendanceChart;
-
-      function loadAttendanceData() {
-        const classId = document.getElementById("class-select").value;
-        fetch(`/get_attendance_data/?class_id=${classId}`)
-          .then((response) => response.json())
-          .then((data) => updateCharts(data));
-      }
-
-      function updateCharts(data) {
-        if (averageAttendanceChart) {
-          averageAttendanceChart.destroy();
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Parse data from template with better error handling
+        let weeklyLabels = [];
+        let weeklyData = [];
+        let classStats = [];
+        
+        try {
+            const weeklyLabelsContent = document.getElementById('weekly-labels').textContent;
+            weeklyLabels = JSON.parse(weeklyLabelsContent || '[]');
+            
+            const weeklyDataContent = document.getElementById('weekly-data').textContent;
+            weeklyData = JSON.parse(weeklyDataContent || '[]');
+            
+            const classStatsContent = document.getElementById('class-stats').textContent;
+            classStats = JSON.parse(classStatsContent || '[]');
+        } catch (parseError) {
+            console.error('Error parsing JSON data:', parseError);
         }
-        if (groupedAttendanceChart) {
-          groupedAttendanceChart.destroy();
+
+        console.log('Weekly Labels:', weeklyLabels);
+        console.log('Weekly Data:', weeklyData);
+        console.log('Class Stats:', classStats);
+        console.log('Weekly Data Type:', Array.isArray(weeklyData) ? 'Array' : typeof weeklyData);
+
+        // Ensure we're working with arrays
+        if (!Array.isArray(weeklyLabels)) weeklyLabels = [];
+        if (!Array.isArray(weeklyData)) weeklyData = [];
+        if (!Array.isArray(classStats)) classStats = [];
+
+        // Initialize weekly trend chart
+        const weeklyCtx = document.getElementById('weeklyChart');
+        if (!weeklyCtx) {
+            console.error('Weekly chart canvas not found!');
+            return;
         }
 
-        if (data.class_avg_attendance) {
-          // Create chart for class average attendance
-          const ctx = document
-            .getElementById("averageAttendanceChart")
-            .getContext("2d");
-          averageAttendanceChart = new Chart(ctx, {
-            type: "bar",
+        // Create datasets for the chart
+        const datasets = [{
+            label: 'Overall Attendance',
+            data: Array.isArray(weeklyData) ? weeklyData.map(item => item?.overall || 0) : [],
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3
+        }];
+
+        // Add class-wise datasets if available
+        if (Array.isArray(weeklyData) && weeklyData.length > 0 && Array.isArray(weeklyData[0]?.class_wise)) {
+            // Get the number of classes from the first week's data
+            const firstWeekClasses = weeklyData[0].class_wise;
+            
+            // For each class, create a dataset across all weeks
+            firstWeekClasses.forEach((classItem, idx) => {
+                const colors = ['#1cc88a', '#f6c23e', '#e74a3b'];
+                const colorIndex = idx % colors.length;
+                
+                datasets.push({
+                    label: classItem.class_name,
+                    data: weeklyData.map(week => {
+                        // Find the matching class in this week's data
+                        const classData = week?.class_wise?.find?.(c => c.class_name === classItem.class_name);
+                        return classData ? classData.percentage : 0;
+                    }),
+                    borderColor: colors[colorIndex],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false
+                });
+            });
+        }
+
+        // Create the chart
+        window.weeklyChart = new Chart(weeklyCtx, {
+            type: 'line',
             data: {
-              labels: Object.keys(data.class_avg_attendance),
-              datasets: [
-                {
-                  label: "Average Attendance (%)",
-                  data: Object.values(data.class_avg_attendance),
-                  backgroundColor: "rgba(75, 192, 192, 0.2)",
-                  borderColor: "rgba(75, 192, 192, 1)",
-                  borderWidth: 1,
-                },
-              ],
+                labels: weeklyLabels,
+                datasets: datasets
             },
             options: {
-              scales: {
-                y: {
-                  beginAtZero: true,
-                },
-              },
-            },
-          });
-        } else if (data.attendance_groups) {
-          
-          const ctx2 = document
-            .getElementById("groupedAttendanceChart")
-            .getContext("2d");
-          groupedAttendanceChart = new Chart(ctx2, {
-            type: "bar",
-            data: {
-              labels: ["Below 65%", "65%-75%", "Above 75%"],
-              datasets: [
-                {
-                  label: "Student Attendance Groups",
-                  data: [
-                    data.attendance_groups.below_65,
-                    data.attendance_groups.between_65_75,
-                    data.attendance_groups.above_75,
-                  ],
-                  backgroundColor: [
-                    "rgba(255, 99, 132, 0.2)",
-                    "rgba(255, 206, 86, 0.2)",
-                    "rgba(75, 192, 192, 0.2)",
-                  ],
-                  borderColor: [
-                    "rgba(255, 99, 132, 1)",
-                    "rgba(255, 206, 86, 1)",
-                    "rgba(75, 192, 192, 1)",
-                  ],
-                  borderWidth: 1,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "top",
-                },
-                tooltip: {
-                  callbacks: {
-                    label: function (context) {
-                      let label = context.label || "";
-                      if (label) {
-                        label += ": ";
-                      }
-                      label += context.raw;
-                      return label;
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
                     },
-                  },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
                 },
-              },
-            },
-          });
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize class-wise charts
+        if (Array.isArray(classStats)) {
+            classStats.forEach(stats => {
+                if (!stats || !stats.class) return;
+                
+                console.log('Processing class:', stats.class.name + ' ' + stats.class.section);
+                
+                // Distribution Chart
+                const distributionCtx = document.getElementById(`distributionChart${stats.class.id}`);
+                if (distributionCtx) {
+                    new Chart(distributionCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Above 75%', '65-75%', 'Below 65%'],
+                            datasets: [{
+                                data: [stats.above_75 || 0, stats.between_65_75 || 0, stats.below_65 || 0],
+                                backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Subjects Chart
+                const subjectsCtx = document.getElementById(`subjectsChart${stats.class.id}`);
+                if (subjectsCtx && Array.isArray(stats.subjects)) {
+                    new Chart(subjectsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: stats.subjects.map(s => s?.name || ''),
+                            datasets: [{
+                                label: 'Attendance %',
+                                data: stats.subjects.map(s => s?.percentage || 0),
+                                backgroundColor: '#4e73df',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+    }
+});
+
+// Toggle chart type function
+function toggleChartType() {
+    try {
+        if (!window.weeklyChart) {
+            console.error('Weekly chart not initialized');
+            return;
+        }
+        const chart = window.weeklyChart;
+        const currentType = chart.config.type;
+        chart.config.type = currentType === 'line' ? 'bar' : 'line';
+        chart.update();
+    } catch (error) {
+        console.error('Error toggling chart type:', error);
+    }
+}
+
+// Toggle view function for class statistics
+function toggleView(classId, view) {
+    const distributionDiv = document.getElementById(`distribution-${classId}`);
+    const subjectsDiv = document.getElementById(`subjects-${classId}`);
+    const buttons = document.querySelectorAll(`button[onclick*="${classId}"]`);
+
+    if (view === 'distribution') {
+        distributionDiv.style.display = 'block';
+        subjectsDiv.style.display = 'none';
+        buttons[0].classList.add('active');
+        buttons[1].classList.remove('active');
+    } else {
+        distributionDiv.style.display = 'none';
+        subjectsDiv.style.display = 'block';
+        buttons[0].classList.remove('active');
+        buttons[1].classList.add('active');
         }
       }
 
-      window.onload = loadAttendanceData;
+// Download chart function
+function downloadChart() {
+    try {
+        if (!window.weeklyChart) {
+            console.error('Weekly chart not initialized');
+            return;
+        }
+        const canvas = document.getElementById('weeklyChart');
+        const image = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'weekly_attendance.png';
+        link.href = image;
+        link.click();
+    } catch (error) {
+        console.error('Error downloading chart:', error);
+    }
+}
     </script>
-  </body>
+
+<style>
+.class-view {
+    transition: all 0.3s ease-in-out;
+}
+
+.border-left-primary { border-left: 4px solid #4e73df !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+.border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+.btn-icon-split {
+    padding: 0;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.btn-icon-split .icon {
+    display: inline-block;
+    padding: .875rem 1.25rem;
+    background: rgba(0,0,0,.15);
+}
+
+.btn-icon-split .text {
+    display: inline-block;
+    padding: .875rem 1.25rem;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.chart-area {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 300px;
+    width: 100%;
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 768px) {
+    .chart-area, .chart-container {
+        height: 250px;
+    }
+}
+</style>
 {% endblock %}

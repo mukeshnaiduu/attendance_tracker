@@ -1,98 +1,82 @@
 {% extends 'base.html' %}
 
-{% block title %}Student List{% endblock %}
+{% block title %}Subjects{% endblock %}
 
 {% block content %}
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ccc;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-        .actions a, .actions form {
-            display: inline-block;
-        }
-        .actions a, .actions button {
-            padding: 5px 10px;
-            background-color: #007bff;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .actions button {
-            background-color: #dc3545;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Subject List</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Default classes per session</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if subjects %}
-                    {% for subject in subjects %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Subjects</h2>
+        </div>
+        {% if user.profile.role == 'hod' %}
+        <div class="col text-end">
+            <a href="{% url 'add_subject' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Subject
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Teacher</th>
+                            <th>Classes per Session</th>
+                            {% if user.profile.role == 'hod' %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
                         <tr>
                             <td>{{ subject.code }}</td>
                             <td>{{ subject.name }}</td>
+                            <td>{{ subject.teacher.profile.fullname }}</td>
                             <td>{{ subject.default_classes_per_session }}</td>
-                            <td class="actions">
-                                <a href="{% url 'subject_edit' subject.id %}">Edit</a>
-                                <form method="post" action="{% url 'subject_delete' subject.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit">Delete</button>
-                                </form>
+                            {% if user.profile.role == 'hod' %}
+                            <td>
+                                <a href="{% url 'subject_edit' subject.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ subject.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
+                            <!-- Delete Confirmation Modal -->
+                            <div class="modal fade" id="deleteModal{{ subject.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ subject.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel{{ subject.id }}">Confirm Deletion</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            Are you sure you want to delete the subject "{{ subject.name }}" ({{ subject.code }})? This action cannot be undone.
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <a href="{% url 'delete_subject' subject.id %}" class="btn btn-danger">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center;">No subjects found.</td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No subjects found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</body>
+</div>
 {% endblock %}

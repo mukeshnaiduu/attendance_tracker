@@ -16,6 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import user_passes_test
+
+def anonymous_required(function=None, redirect_url=None):
+    actual_decorator = user_passes_test(
+        lambda u: not u.is_authenticated,
+        login_url=redirect_url or 'dashboard'
+    )
+    if function:
+        return actual_decorator(function)
+    return actual_decorator
 
 urlpatterns = [
     path('admin/', admin.site.urls),

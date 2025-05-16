@@ -1,0 +1,216 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+.progress {
+    height: 20px;
+    margin-bottom: 0;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.progress-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    transition: width .6s ease;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Generate Reports</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'export_report' %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Report Type</label>
+                                <select name="report_type" class="form-select" required>
+                                    <option value="daily">Daily Attendance</option>
+                                    <option value="weekly">Weekly Summary</option>
+                                    <option value="monthly">Monthly Summary</option>
+                                    <option value="subject">Subject-wise</option>
+                                    <option value="class">Class-wise</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" name="start_date" class="form-control" required 
+                                       value="{{ start_date }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">End Date</label>
+                                <input type="date" name="end_date" class="form-control" required 
+                                       value="{{ end_date }}">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-download me-2"></i>Export Report
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Class-wise Attendance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Total Students</th>
+                                    <th>Average Attendance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for class in classes %}
+                                <tr>
+                                    <td>{{ class.name }} - {{ class.section }}</td>
+                                    <td>{{ class.students.count }}</td>
+                                    <td>
+                                        {% with class.get_attendance_percentage as attendance_percentage %}
+                                        <div class="progress">
+                                            <div class="progress-bar {% if attendance_percentage >= 75 %}bg-success{% elif attendance_percentage >= 65 %}bg-warning{% else %}bg-danger{% endif %}"
+                                                 role="progressbar" 
+                                                 style="width: {{ attendance_percentage }}%">
+                                                {{ attendance_percentage }}%
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'attendance_report' %}?class_id={{ class.id }}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'export_attendance_report' class.id %}" 
+                                           class="btn btn-sm btn-success">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No classes found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Subject-wise Attendance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Code</th>
+                                    <th>Average Attendance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in subjects %}
+                                <tr>
+                                    <td>{{ subject.name }}</td>
+                                    <td>{{ subject.code }}</td>
+                                    <td>
+                                        {% with subject.get_attendance_percentage as attendance_percentage %}
+                                        <div class="progress">
+                                            <div class="progress-bar {% if attendance_percentage >= 75 %}bg-success{% elif attendance_percentage >= 65 %}bg-warning{% else %}bg-danger{% endif %}"
+                                                 role="progressbar" 
+                                                 style="width: {{ attendance_percentage }}%">
+                                                {{ attendance_percentage }}%
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'attendance_report' %}?subject_id={{ subject.id }}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No subjects found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set min date for end date based on start date
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    const endDateInput = document.querySelector('input[name="end_date"]');
+    
+    startDateInput.addEventListener('change', function() {
+        endDateInput.min = this.value;
+        if (endDateInput.value && endDateInput.value < this.value) {
+            endDateInput.value = this.value;
+        }
+    });
+    
+    // Set max date for start date based on end date
+    endDateInput.addEventListener('change', function() {
+        startDateInput.max = this.value;
+        if (startDateInput.value && startDateInput.value > this.value) {
+            startDateInput.value = this.value;
+        }
+    });
+});
+</script>
+{% endblock %} 

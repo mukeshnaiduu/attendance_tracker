@@ -1,206 +1,171 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register/Login</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #121212;
-        color: #ffffff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
-      .container {
-        text-align: center;
-      }
-      .form-container {
-        background-color: #1e1e1e;
-        padding: 20px;
-        border-radius: 8px;
-        width: 300px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-      }
-      .form-container h1 {
-        margin-bottom: 20px;
-      }
-      .form-container input,
-      .form-container select {
-        width: calc(100% - 20px);
-        padding: 10px;
-        margin: 10px 0;
-        border: none;
-        border-radius: 5px;
-        background-color: #333;
-        color: #fff;
-      }
-      .form-container button {
-        background-color: #6200ee;
-        color: white;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        width: 100%;
-      }
-      .form-container button:hover {
-        background-color: #3700b3;
-      }
-      .toggle-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-      }
-      .toggle-container div {
-        margin: 0 10px;
-        cursor: pointer;
-      }
-      .toggle-container div.active {
-        color: #6200ee;
-        font-weight: bold;
-      }
-      .error-message {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
-        }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="toggle-container">
-        <div id="login-toggle" class="active">Log In</div>
-        <div id="register-toggle">Sign Up</div>
-      </div>
-      <div id="form-wrapper">
-        
-        <div id="login-form" class="form-container">
-          <h1>Log In</h1>
-          {% if messages %}
-            <div class="error-message">
-                <ul>
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm mt-5">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-4">Register</h2>
+                    
+                    {% if messages %}
                     {% for message in messages %}
-                        <p>{{ message }}</p>
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     {% endfor %}
-                </ul>
+                    {% endif %}
+                    
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                            <div class="invalid-feedback">
+                                Please choose a username.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fullname" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="fullname" name="fullname" required>
+                            <div class="invalid-feedback">
+                                Please enter your full name.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">
+                                Password must:
+                                <ul class="mb-0">
+                                    <li>Be at least 8 characters long</li>
+                                    <li>Contain at least one special character (@, $, or #)</li>
+                                    <li>Contain both letters and numbers</li>
+                                </ul>
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter a valid password.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div class="invalid-feedback">
+                                Passwords must match.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select a role</option>
+                                <option value="faculty">Faculty</option>
+                                <option value="hod">HoD</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a role.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 secret-code-container d-none">
+                            <label for="secret_code" class="form-label">Secret Code</label>
+                            <input type="password" class="form-control" id="secret_code" name="secret_code">
+                            <div class="form-text">
+                                Hint : 'hod'.
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter the secret code.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Register</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Already have an account? <a href="{% url 'login' %}" class="text-decoration-none">Login here</a></p>
+                    </div>
+                </div>
             </div>
-        {% endif %}
-          <form method="post" action="{% url 'login' %}">
-            {% csrf_token %}
-            <input
-              type="text"
-              name="username"
-              placeholder="Username"
-              required
-            /><br />
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              required
-            /><br />
-            <button type="submit">Log In</button>
-          </form>
         </div>
-        <div id="register-form" class="form-container" style="display: none">
-          <h1>Sign Up</h1>
-          {% if messages %}
-            <div class="error-message">
-                <ul>
-                    {% for message in messages %}
-                        <li>{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-          <form method="post" action="{% url 'register' %}">
-            {% csrf_token %}
-            <input
-              type="text"
-              id="username"
-              name="username"
-              placeholder="Username"
-              required
-            /><br />
-            <input
-              type="text"
-              id="fullname"
-              name="fullname"
-              placeholder="Full Name"
-              required
-            /><br />
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Email"
-              required
-            /><br />
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Password"
-              required
-            /><br />
-            <input
-              type="password"
-              id="confirm_password"
-              name="confirm_password"
-              placeholder="Confirm Password"
-              required
-            /><br />
-            <label for="role">Role:</label>
-            <select id="role" name="role" required>
-              <option value="faculty">Faculty</option>
-              <option value="hod">HoD</option></select
-            ><br /><br />
-            <div id="secret_code_div" style="display: none">
-              <input
-                type="text"
-                id="secret_code"
-                name="secret_code"
-                placeholder="Secret Code"
-              /><br /><br />
-            </div>
-            <button type="submit">Register</button>
-          </form>
-        </div>
-      </div>
     </div>
+</div>
 
-    <script>
-      document.getElementById("role").addEventListener("change", function () {
-        var role = this.value;
-        var secretCodeDiv = document.getElementById("secret_code_div");
-        if (role === "hod") {
-          secretCodeDiv.style.display = "block";
+<script>
+// Form validation
+(function () {
+    'use strict'
+    
+    // Password validation
+    var password = document.getElementById("password");
+    var confirm_password = document.getElementById("confirm_password");
+    
+    function validatePassword() {
+        var value = password.value;
+        var hasSpecialChar = /[@$#]/.test(value);
+        var hasLetter = /[A-Za-z]/.test(value);
+        var hasNumber = /[0-9]/.test(value);
+        var isLongEnough = value.length >= 8;
+        
+        if (!hasSpecialChar || !hasLetter || !hasNumber || !isLongEnough) {
+            password.setCustomValidity("Password must be at least 8 characters long and contain letters, numbers, and special characters (@, $, or #)");
         } else {
-          secretCodeDiv.style.display = "none";
+            password.setCustomValidity('');
         }
-      });
-
-      document
-        .getElementById("login-toggle")
-        .addEventListener("click", function () {
-          document.getElementById("login-form").style.display = "block";
-          document.getElementById("register-form").style.display = "none";
-          this.classList.add("active");
-          document.getElementById("register-toggle").classList.remove("active");
-        });
-
-      document
-        .getElementById("register-toggle")
-        .addEventListener("click", function () {
-          document.getElementById("login-form").style.display = "none";
-          document.getElementById("register-form").style.display = "block";
-          this.classList.add("active");
-          document.getElementById("login-toggle").classList.remove("active");
-        });
-    </script>
-  </body>
-</html>
+        
+        if (password.value !== confirm_password.value) {
+            confirm_password.setCustomValidity("Passwords Don't Match");
+        } else {
+            confirm_password.setCustomValidity('');
+        }
+    }
+    
+    password.onchange = validatePassword;
+    password.onkeyup = validatePassword;
+    confirm_password.onkeyup = validatePassword;
+    
+    // Role selection handling
+    var roleSelect = document.getElementById('role');
+    var secretCodeContainer = document.querySelector('.secret-code-container');
+    var secretCodeInput = document.getElementById('secret_code');
+    
+    roleSelect.addEventListener('change', function() {
+        if (this.value === 'hod') {
+            secretCodeContainer.classList.remove('d-none');
+            secretCodeInput.required = true;
+        } else {
+            secretCodeContainer.classList.add('d-none');
+            secretCodeInput.required = false;
+        }
+    });
+    
+    // Form validation
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            validatePassword();
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
+{% endblock %}

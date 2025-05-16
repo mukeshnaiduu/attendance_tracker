@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Attendance{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Edit Attendance Record</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Attendance Details</h5>
+                        <span class="badge {% if attendance.status %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if attendance.status %}Present{% else %}Absent{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Student and Class Info -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Student Name</label>
+                                    <div class="form-control-plaintext">
+                                        <i class="fas fa-user-graduate me-2"></i>
+                                        {{ attendance.student.name }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Roll Number</label>
+                                    <div class="form-control-plaintext">
+                                        <i class="fas fa-id-card me-2"></i>
+                                        {{ attendance.student.roll_no }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Class</label>
+                                    <div class="form-control-plaintext">
+                                        <i class="fas fa-chalkboard me-2"></i>
+                                        {{ attendance.student.class_name.display_name }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Subject</label>
+                                    <div class="form-control-plaintext">
+                                        <i class="fas fa-book me-2"></i>
+                                        {{ attendance.subject.name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date and Status -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Date</label>
+                                    <div class="form-control-plaintext">
+                                        <i class="fas fa-calendar me-2"></i>
+                                        {{ attendance.date|date:'F d, Y' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Attendance Status</label>
+                                    <select name="status" class="form-select">
+                                        <option value="1" {% if attendance.status %}selected{% endif %}>
+                                            <i class="fas fa-check-circle"></i> Present
+                                        </option>
+                                        <option value="0" {% if not attendance.status %}selected{% endif %}>
+                                            <i class="fas fa-times-circle"></i> Absent
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Remarks -->
+                        <div class="mb-4">
+                            <label class="form-label">Remarks</label>
+                            <textarea name="remarks" class="form-control" rows="3" placeholder="Add any additional notes or remarks here...">{{ attendance.remarks }}</textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'attendance_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

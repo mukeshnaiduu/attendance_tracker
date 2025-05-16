@@ -4,154 +4,351 @@
 {% block title %}Attendance Report{% endblock %}
 
 {% block content %}
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-    }
-    .container {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .class-select, .filter-dropdown {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .class-select select, .filter-dropdown select {
-        padding: 10px;
-        font-size: 16px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-    }
-    table, th, td {
-        border: 1px solid #ccc;
-    }
-    th, td {
-        padding: 10px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .export-button {
-        display: inline-block;
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #007bff;
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        text-decoration: none;
-        cursor: pointer;
-    }
-    .export-button:hover {
-        background-color: #0056b3;
-    }
-</style>
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Filters Card -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="filterForm" method="get">
+                        <div class="mb-3">
+                            <label for="class_id" class="form-label">Class:</label>
+                            <select name="class_id" id="class_id" class="form-select" onchange="this.form.submit()">
+                                <option value="">Select a class</option>
+                                {% for class in classes %}
+                                    <option value="{{ class.id }}" {% if class.id|stringformat:"s" == selected_class_id %}selected{% endif %}>
+                                        {{ class.display_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-<div class="container">
-    <h1>Attendance Report</h1>
-    
-    <div class="class-select">
-        <label for="class-select">Select Class:</label>
-        <select id="class-select" onchange="loadAttendance()">
-            <option value="">Select a Class</option>
-            {% for class in classes %}
-                <option value="{{ class.id }}" {% if class.id|stringformat:"s" == selected_class_id %}selected{% endif %}>{{ class.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+                        {% if selected_class_id %}
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">From Date:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date|default:'' }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
 
-    {% if selected_class %}
-        <div class="filter-dropdown">
-            <label for="percentage-filter">Filter by Percentage:</label>
-            <select id="percentage-filter" onchange="filterAttendance()">
-                <option value="">Select a filter</option>
-                <!--<option value="below75" {% if selected_filter == "below75" %}selected{% endif %}>Below 75%</option>-->
-                <option value="below65" {% if selected_filter == "below65" %}selected{% endif %}>Below 65%</option>
-                <option value="65-75" {% if selected_filter == "65-75" %}selected{% endif %}>65%-75%</option>
-                <option value="above75" {% if selected_filter == "above75" %}selected{% endif %}>Above 75%</option>
-            </select>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">To Date:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date|default:today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="search" class="form-label">Search:</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ search_query }}" placeholder="Search by name or roll no">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Attendance:</label>
+                            <select name="filter" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Students</option>
+                                <option value="below65" {% if current_filter == 'below65' %}selected{% endif %}>Below 65%</option>
+                                <option value="65-75" {% if current_filter == '65-75' %}selected{% endif %}>65% - 75%</option>
+                                <option value="above75" {% if current_filter == 'above75' %}selected{% endif %}>Above 75%</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="{% url 'attendance_report' %}" class="btn btn-secondary">Reset</a>
+                        </div>
+
+                        {% if attendance_data %}
+                        <div class="mb-3">
+                            <label class="form-label">Export Report:</label>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'export_attendance_report' selected_class_id %}?format=pdf{% if search_query %}&search={{ search_query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_filter %}&filter={{ current_filter }}{% endif %}" 
+                                   class="btn btn-success">
+                                    Export as PDF
+                                </a>
+                                <a href="{% url 'export_attendance_report' selected_class_id %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if current_filter %}&filter={{ current_filter }}{% endif %}" 
+                                   class="btn btn-info">
+                                    Export as CSV
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Roll No</th>
-                    <th>Student Name</th>
-                    {% for subject in subjects %}
-                        <th>{{ subject.name }}</th>
-                    {% endfor %}
-                    <th>Total Classes Attended</th>
-                    <th>Total Classes Held</th>
-                    <th>Percentage</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="2">Total classes</td>
-                    {% for subject_id, sessions_count in subject_sessions.items %}
-                        <td>{{ sessions_count }}</td>
-                    {% endfor %}
-                    <td>{{ total_classes_held }}</td>
-                    <td>{{ total_classes_held }}</td>
-                    <td>100%</td>
-                </tr>
-                {% if attendance_data %}
-                    {% for student in attendance_data %}
-                        <tr>
-                            <td>{{ student.rollno }}</td>
-                            <td>{{ student.fullname }}</td>
-                            {% for subject_id, attendance_count in student.subject_attendance.items %}
-                            <td>
-                                  {{ attendance_count }}
-                              </td>
-                              
+        <!-- Main Content -->
+        <div class="col-md-9">
+            {% if selected_class_id %}
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Total Students</h6>
+                            <h3 class="mb-0">{{ total_students }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Above 75%</h6>
+                            <h3 class="mb-0">{{ students_above_75 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">65% - 75%</h6>
+                            <h3 class="mb-0">{{ students_65_75 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title">Below 65%</h6>
+                            <h3 class="mb-0">{{ students_below_65 }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">Attendance Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="attendanceDistribution"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">Subject-wise Attendance</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="subjectAttendance"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Detailed Report</h5>
+                </div>
+                <div class="card-body">
+                    {% if attendance_data %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Roll No</th>
+                                    <th>Name</th>
+                                    {% for subject in subjects %}
+                                        <th class="text-center">{{ subject.name }}</th>
+                                    {% endfor %}
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in attendance_data %}
+                                    <tr>
+                                        <td>{{ student.rollno }}</td>
+                                        <td>{{ student.fullname }}</td>
+                                        {% for subject in subjects %}
+                                            {% with subject_id=subject.id|stringformat:"s" %}
+                                                {% with subject_data=student.subject_attendance|get_item:subject_id %}
+                                                    <td class="text-center">
+                                                        {{ subject_data.attended|default:"0" }}/{{ subject_data.total|default:"0" }}
+                                                    </td>
+                                                {% endwith %}
+                                            {% endwith %}
+                                        {% endfor %}
+
+
+                                        <td class="text-center">
+                                            {{ student.total_classes_attended }}/{{ student.total_sessions }}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {% if student.percentage < 65 %}bg-danger
+                                                             {% elif student.percentage < 75 %}bg-warning
+                                                             {% else %}bg-success{% endif %}">
+                                                {{ student.percentage|floatformat:2 }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if attendance_data.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if attendance_data.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% with request.GET as params %}{% if 'page' in params %}{% with params|pop:'page' as new_params %}{{ new_params.urlencode }}{% if new_params %}&{% endif %}{% endwith %}{% else %}{{ params.urlencode }}{% if params %}&{% endif %}{% endif %}{% endwith %}page={{ attendance_data.previous_page_number }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for i in attendance_data.paginator.page_range %}
+                                {% if attendance_data.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% with request.GET as params %}{% if 'page' in params %}{% with params|pop:'page' as new_params %}{{ new_params.urlencode }}{% if new_params %}&{% endif %}{% endwith %}{% else %}{{ params.urlencode }}{% if params %}&{% endif %}{% endif %}{% endwith %}page={{ i }}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
                             {% endfor %}
-                            <td>{{ student.total_classes_attended }}</td>
-                            <td>{{ student.total_sessions }}</td>
-                            <td>{{ student.percentage }}%</td>
-                        </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="15" style="text-align: center;">No attendance data available for the selected class.</td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="{% url 'export_attendance_report' class_id=selected_class.id %}" class="export-button">Download Attendance Report</a>
+                            {% if attendance_data.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% with request.GET as params %}{% if 'page' in params %}{% with params|pop:'page' as new_params %}{{ new_params.urlencode }}{% if new_params %}&{% endif %}{% endwith %}{% else %}{{ params.urlencode }}{% if params %}&{% endif %}{% endif %}{% endwith %}page={{ attendance_data.next_page_number }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info">
+                        No attendance records found for the selected criteria.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                Please select a class to view attendance report.
+            </div>
+            {% endif %}
         </div>
-    {% else %}
-        <p>No class selected.</p>
-    {% endif %}
+    </div>
 </div>
 
-<script>
-    function filterAttendance() {
-        var filter = document.getElementById("percentage-filter").value;
-        var classId = document.getElementById("class-select").value;
-        window.location.href = `{% url 'attendance_report' %}?class_id=${classId}&filter=${filter}`;
-    }
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    function loadAttendance() {
-        var classId = document.getElementById("class-select").value;
-        window.location.href = `{% url 'attendance_report' %}?class_id=${classId}`;
-    }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if selected_class_id and attendance_data %}
+    // Attendance Distribution Chart
+    const distributionCtx = document.getElementById('attendanceDistribution').getContext('2d');
+    new Chart(distributionCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Above 75%', '65% - 75%', 'Below 65%'],
+            datasets: [{
+                data: [
+                    {{ students_above_75|default:0 }},
+                    {{ students_65_75|default:0 }},
+                    {{ students_below_65|default:0 }}
+                ],
+                backgroundColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#dc3545'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Subject-wise Attendance Chart
+    const subjectCtx = document.getElementById('subjectAttendance').getContext('2d');
+    const subjectLabels = [
+        {% for subject in subjects %}
+            '{{ subject.name }}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const subjectData = [
+        {% for subject in subjects %}
+            {{ subject_averages|get_item:subject.id|default:0|floatformat:2 }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    new Chart(subjectCtx, {
+        type: 'bar',
+        data: {
+            labels: subjectLabels,
+            datasets: [{
+                label: 'Average Attendance %',
+                data: subjectData,
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // Set max date as today for both inputs
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.max = today;
+    endDateInput.max = today;
+    
+    // When start date changes, update end date min value
+    startDateInput.addEventListener('change', function() {
+        endDateInput.min = this.value;
+        if (endDateInput.value < this.value) {
+            endDateInput.value = this.value;
+        }
+    });
+    
+    // When end date changes, update start date max value
+    endDateInput.addEventListener('change', function() {
+        startDateInput.max = this.value;
+        if (startDateInput.value > this.value) {
+            startDateInput.value = this.value;
+        }
+    });
+});
 </script>
 {% endblock %}
