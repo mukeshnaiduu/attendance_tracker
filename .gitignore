@@ -33,3 +33,6 @@ Thumbs.db
 
 # Reports
 *.pdf
+
+
+.gitignore
